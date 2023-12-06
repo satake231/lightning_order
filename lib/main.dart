@@ -1,6 +1,5 @@
-import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rvp;
 
 void main() {
   runApp(MyApp());
@@ -11,8 +10,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
+    return rvp.ProviderScope(
       child: MaterialApp(
         title: 'Lightning Order',
         theme: ThemeData(
@@ -25,64 +23,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyAppState extends ChangeNotifier {
-  var current1 = WordPair.random();
-  var current2 = WordPair.random();
-  var current3 = WordPair.random();
-  var current4 = WordPair.random();
-  var history = <WordPair>[];
-
-  GlobalKey? historyListKey;
-
-  void getNext() {
-    history.insert(0, current1);
-    history.insert(0, current2);
-    history.insert(0, current3);
-    history.insert(0, current4);
-    var animatedList = historyListKey?.currentState as AnimatedListState?;
-    animatedList?.insertItem(0);
-    current1 = WordPair.random();
-    current2 = WordPair.random();
-    current3 = WordPair.random();
-    current4 = WordPair.random();
-    notifyListeners();
-  }
-
-  var favorites = <WordPair>[];
-
-  void toggleFavorite([WordPair? pair]) {
-    pair = pair ?? current1;
-    pair = current2;
-    pair = current3;
-    pair = current4;
-    if (favorites.contains(current1) ||
-        favorites.contains(current2) ||
-        favorites.contains(current3) ||
-        favorites.contains(current4)) {
-      favorites.remove(current1);
-      favorites.remove(current2);
-      favorites.remove(current3);
-      favorites.remove(current4);
-    } else {
-      favorites.add(current1);
-      favorites.add(current2);
-      favorites.add(current3);
-      favorites.add(current4);
-    }
-    notifyListeners();
-  }
-
-  void removeFavorite(WordPair pair) {
-    favorites.remove(pair);
-    notifyListeners();
-  }
-}
-
+const List<int> list = <int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+final List<int> order = <int>[0, 0, 0, 0];
+final List<int> waiting = <int>[0, 0, 0, 0];
 
 class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
+
 
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
@@ -91,149 +40,83 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     var colorScheme = Theme.of(context).colorScheme;
 
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-        break;
-      case 1:
-        page = FavoritesPage();
-        break;
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
-    var mainArea = ColoredBox(
-        color: colorScheme.surfaceVariant,
-        child: AnimatedSwitcher(
-          duration: Duration(milliseconds: 300),
-          child: page,
-        ),
-    );
-
-    return Scaffold(
-      body: LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 450) {
-          return Column(
-            children: [
-              Expanded(child: mainArea),
-              SafeArea(
-                  child: BottomNavigationBar(
-                    items: [
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.home),
-                          label: 'Home',
-                      ),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.favorite),
-                          label: 'Favorites',
-                      ),
-                    ],
-                    currentIndex: selectedIndex,
-                    onTap: (value) {
-                      setState(() {
-                        selectedIndex = value;
-                      });
-                    },
-                  ),
-              )
-            ],
-          );
-        } else {
-          return Row(
-            children: [
-              SafeArea(
-                  child: NavigationRail(
-                    extended: constraints.maxWidth >= 600,
-                    destinations: [
-                      NavigationRailDestination(
-                          icon: Icon(Icons.home),
-                          label: Text('Home'),
-                      ),
-                      NavigationRailDestination(
-                          icon: Icon(Icons.favorite),
-                          label: Text('Favorites'),
-                      ),
-                    ],
-                    selectedIndex: selectedIndex,
-                    onDestinationSelected: (value) {
-                      setState(() {
-                        selectedIndex = value;
-                      });
-                    },
-                  ),
+    return DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            bottom: TabBar(
+              tabs: [
+                Tab(
+                  text: 'Order',
+                  icon: Icon(Icons.fastfood),
                 ),
-              Expanded(child: mainArea),
+                Tab(
+                  text: 'Waiting',
+                  icon: Icon(Icons.local_grocery_store),
+                ),
               ],
-            );
-          }
-        },
-      ),
+            ),
+            title: Text('Lightning Order'),
+          ),
+          body: TabBarView(
+            children: [
+              Container(
+                color: colorScheme.surfaceVariant,
+                child: Center(
+                  child: OrderPage(),
+                ),
+              ),
+              Container(
+                color: colorScheme.surfaceVariant,
+                child: Center(
+                  child: WaitingPage(),
+                ),
+              ),
+            ],
+          ),
+        ),
     );
   }
 }
 
-
-class GeneratorPage extends StatelessWidget {
+class OrderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair1 = appState.current1;
-    var pair2 = appState.current2;
-    var pair3 = appState.current3;
-    var pair4 = appState.current4;
-
-    IconData icon;
-    if (appState.favorites.contains(pair1) ||
-        appState.favorites.contains(pair2) ||
-        appState.favorites.contains(pair3) ||
-        appState.favorites.contains(pair4)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
     return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-                flex: 3,
-                child: HistoryListView(),
-            ),
-            SizedBox(height: 10),
-            Wrap(
-              children: [
-                BigCard(pair: pair1),
-                SizedBox(width: 5),
-                BigCard(pair: pair2),
-                SizedBox(width: 5),
-                BigCard(pair: pair3),
-                SizedBox(width: 5),
-                BigCard(pair: pair4),
-                SizedBox(width: 5),
-              ],
-            ),
-            SizedBox(height: 10),
+            Spacer(flex: 2),
             Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    appState.toggleFavorite();
-                  },
-                  icon: Icon(icon),
-                  label: Text('Like'),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    appState.getNext();
-                  },
-                  child: Text('Next'),
-                ),
+                BigCard(menuNum: 0),
+                BigCard(menuNum: 1),
               ],
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                BigCard(menuNum: 2),
+                BigCard(menuNum: 3),
+              ],
+            ),
+            SizedBox(
+              height: 60,
+              width: 150,
+              child: ElevatedButton(
+                onPressed: () {
+                  _showCustomDialog(context);
+                },
+                child: Text('Confirm',
+                    style: TextStyle(
+                    fontSize: 25,
+                  ),
+                ),
+              ),
             ),
             Spacer(flex: 2),
           ],
@@ -242,147 +125,261 @@ class GeneratorPage extends StatelessWidget {
   }
 }
 
-class BigCard extends StatelessWidget {
-  const BigCard({
-    Key? key,
-    required this.pair,
-  }) : super(key: key);
+class BigCard extends StatefulWidget {
+  final int menuNum;
+  BigCard({required this.menuNum});
 
-  final WordPair pair;
+  @override
+  State<BigCard> createState() => _BigCardState();
+}
+
+class _BigCardState extends State<BigCard> {
+  late int _menuNum;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuNum = widget.menuNum;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: AnimatedSize(
-          duration: Duration(milliseconds: 300),
-            child: MergeSemantics(
-              child: Wrap(
-                children: [
-                  Text(
-                    pair.first,
-                    style: style.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    pair.second,
-                    style: style.copyWith(fontWeight: FontWeight.bold),
-                  )
-                ],
+    return  SizedBox(
+      width: 200,
+      height: 250,
+      child: Card(
+        child: Stack(
+          children: [
+            SizedBox(
+              width: 200,
+              height: 200,
+              child: Image.asset('assets/images/circle_logo.png',
+                  fit: BoxFit.fill),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 80,
+              child: SizedBox(
+                width: 40,
+                child: DropdownButtonCount(menuNumber: _menuNum),
               ),
             ),
+          ],
         ),
       ),
     );
   }
 }
 
-class FavoritesPage extends StatelessWidget {
+
+class DropdownButtonCount extends StatefulWidget {
+  final int menuNumber;
+  DropdownButtonCount({required this.menuNumber});
+
+  @override
+  State<DropdownButtonCount> createState() => _DropdownButtonCountState();
+}
+
+class _DropdownButtonCountState extends State<DropdownButtonCount> {
+  int _value = list.first;
+  late int _menuNumber;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuNumber = widget.menuNumber;
+  }
+
   @override
   Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    var appState = context.watch<MyAppState>();
-
-    if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text('No favorites yet'),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-            padding: const EdgeInsets.all(30),
-            child: Text('You have '
-                '${appState.favorites.length} favorites:'),
-            ),
-            Expanded(
-                child: GridView(
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400,
-                    childAspectRatio: 400 / 80,
-                  ),
-                  children: [
-                    for (var pair in appState.favorites)
-                      ListTile(
-                        leading: IconButton(
-                            icon: Icon(Icons.delete_outline, semanticLabel: 'Delete'),
-                            color: theme.colorScheme.primary,
-                            onPressed: () {
-                              appState.removeFavorite(pair);
-                            },
-                          ),
-                          title: Text(
-                            pair.asLowerCase,
-                            semanticsLabel: pair.asPascalCase,
-                        ),
-                      ),
-                  ],
-                ),
-            ),
-      ],
+    return DropdownButton<int>(
+      icon: const Icon(Icons.arrow_drop_down),
+      elevation: 5,
+      style: const TextStyle(color: Colors.deepPurple),
+      underline: Container(
+        height: 2,
+        color: Colors.deepPurpleAccent,
+      ),
+      value: _value,
+      onChanged: (newValue) {
+        setState(() {
+          _value = newValue!;
+          order[_menuNumber] = _value;
+        });
+        // This is called when the user selects an item.
+      },
+      items: list.map<DropdownMenuItem<int>>((int value) {
+        return DropdownMenuItem<int>(
+          value: value,
+          child: Text(value.toString()),
+        );
+      }).toList(),
     );
   }
 }
 
-class HistoryListView extends StatefulWidget {
-  const HistoryListView({Key? key}) : super(key: key);
 
-  @override
-  State<HistoryListView> createState() => _HistoryListViewState();
-}
-
-class _HistoryListViewState extends State<HistoryListView> {
-  final _key = GlobalKey();
-
-  static const Gradient _maskingGradient = LinearGradient(
-    colors: [Colors.transparent, Colors.black],
-    stops: [0.0, 0.5],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
+class WaitingPage extends StatelessWidget {
+  const WaitingPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<MyAppState>();
-    appState.historyListKey = _key;
+    return Center(
+      child: ClickCounter(),
+    );
+  }
+}
 
-    return ShaderMask(
-        shaderCallback: (bounds) => _maskingGradient.createShader(bounds),
-        blendMode: BlendMode.dstIn,
-        child: AnimatedList(
-          key: _key,
-          reverse: true,
-          padding: EdgeInsets.only(top: 100),
-          initialItemCount: appState.history.length,
-          itemBuilder: (context, index, animation) {
-            final pair = appState.history[index];
-            return SizeTransition(
-              sizeFactor: animation,
-              child: Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    appState.toggleFavorite(pair);
-                  },
-                  icon: appState.favorites.contains(pair)
-                        ? Icon(Icons.favorite, size:12)
-                        : SizedBox(),
-                  label: Text(
-                    pair.asLowerCase,
-                    semanticsLabel: pair.asPascalCase,
-                  ),
+class ClickCounter extends StatefulWidget {
+  @override
+  State<ClickCounter> createState() => _ClickCounterState();
+}
+
+class _ClickCounterState extends State<ClickCounter> {
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Click Counter'),
+      ),
+      body: Center(
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisSpacing: 5,     //ボックス左右間のスペース
+            mainAxisSpacing: 0,      //ボックス上下間のスペース
+            crossAxisCount: 2,        //ボックスを横に並べる数
+          ),
+          itemCount: waiting.length,
+          itemBuilder: (BuildContext context, int index) {
+            return SizedBox(
+              width: 200,
+              height: 250,
+              child: Card(
+                child: Stack(
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Image.asset('assets/images/circle_logo.png',
+                          fit: BoxFit.fill),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      left: 80,
+                      child: SizedBox(
+                        width: 40,
+                        child: Text(
+                          waiting[index].toString(),
+                          style: const TextStyle(
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
           },
         ),
+      ),
     );
   }
 }
+
+void _showCustomDialog(BuildContext context) {
+  showDialog(
+      context: context, builder: (context) => _createCustomDialog(context));
+}
+
+Dialog _createCustomDialog(BuildContext context) {
+  return Dialog(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10.0),
+    ),
+    child: SizedBox(
+      width: 300,
+      height: 170,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(10),
+              topRight: Radius.circular(10),
+            ),
+            child: Container(
+              width: 300,
+              height: 126,
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 210, 225, 192),
+                border: Border(
+                  bottom: BorderSide(
+                    width: 0.5,
+                    color: Color.fromRGBO(0, 0, 0, 0.4),
+                  ),
+                ),
+              ),
+              child: const Center(
+                child: Text("Confirm your order?"),
+              ),
+            ),
+          ),
+          Container(
+            decoration: const BoxDecoration(
+              color: Color.fromARGB(255, 210, 225, 192),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(10),
+                bottomRight: Radius.circular(10),
+              ),
+            ),
+            width: 300,
+            height: 44,
+            child: Row(
+              children: [
+                MaterialButton( //こっちのときは注文確定しない（値はそのまま）
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(10),
+                    ),
+                  ),
+                  minWidth: 150,
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    print("object");
+                    },
+                  child: Center(
+                    child: Text("No"),
+                  ),
+                ),
+                MaterialButton( //こっちのときだけ注文確定
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      bottomRight: Radius.circular(10),
+                    ),
+                  ),
+                  minWidth: 150,
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    for (int i = 0; i < order.length; i++) {
+                      waiting[i] = order[i];
+                    }
+                    order.fillRange(0, order.length, 0);
+                    print("object");
+                  },
+                  child: Center(
+                    child: Text("Yes"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+
